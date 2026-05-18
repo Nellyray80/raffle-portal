@@ -460,20 +460,20 @@ function HistoryModal({ onClose, history }) {
   );
 }
 
-function InviteGuarantorModal({ beneficiaryId, alreadyInvited, onInvited, onClose }) {
+function InviteGuarantorModal({ beneficiaryId, beneficiaryName, alreadyInvited, onInvited, onClose }) {
   const [form,setForm]=useState({name:'',email:'',phone:''});
   const [sent,setSent]=useState(false);const [loading,setLoading]=useState(false);const [err,setErr]=useState('');
   const set=(k,v)=>setForm(f=>({...f,[k]:v}));
   return (
     <Modal title="Invite Your Guarantor" onClose={onClose}>
-      {sent?(<><AlertBox type="success"><strong>Invitation sent!</strong><br/>Your guarantor <strong>{form.name}</strong> has been notified via SMS and email. Once they register with the same email, your account will become fully active.</AlertBox><Btn variant="primary" full onClick={onClose}>Done</Btn></>):(
+      {sent?(<><AlertBox type="success"><strong>Invitation sent!</strong><br/>Your guarantor <strong>{form.name}</strong> has been notified via email. Once they register with the same email, your account will become fully active.</AlertBox><Btn variant="primary" full onClick={onClose}>Done</Btn></>):(
         <>
-          {alreadyInvited?<AlertBox type="warning">An invitation was already sent. You can resend below.</AlertBox>:<AlertBox type="info">Your guarantor will be notified by SMS and email. They must register using the same email address to be automatically linked to your account.</AlertBox>}
+          {alreadyInvited?<AlertBox type="warning">An invitation was already sent. You can resend below.</AlertBox>:<AlertBox type="info">Your guarantor will receive an invitation email with registration instructions. They must register using the same email address to be automatically linked to your account.</AlertBox>}
           {err&&<AlertBox type="error">{err}</AlertBox>}
           <FormField label="Guarantor Full Name" required><input placeholder="Full legal name" value={form.name} onChange={e=>set('name',e.target.value)}/></FormField>
           <FormField label="Guarantor Email" required><input type="email" placeholder="guarantor@email.com" value={form.email} onChange={e=>set('email',e.target.value)}/></FormField>
           <FormField label="Guarantor Phone" required><input type="tel" placeholder="+1 (555) 000-0000" value={form.phone} onChange={e=>set('phone',e.target.value)}/></FormField>
-          <Btn variant="primary" size="lg" full disabled={!form.name||!form.email||!form.phone||loading} onClick={async()=>{setLoading(true);const{error}=await DB.createInvite(beneficiaryId,form);setLoading(false);if(error){setErr(error.message);return;}onInvited();setSent(true);}}>{loading?'Sending…':'Send Invitation'}</Btn>
+          <Btn variant="primary" size="lg" full disabled={!form.name||!form.email||!form.phone||loading} onClick={async()=>{setLoading(true);const{error}=await DB.createInvite(beneficiaryId,{...form,beneficiaryName});setLoading(false);if(error){setErr(error.message);return;}onInvited();setSent(true);}}>{loading?'Sending…':'Send Invitation'}</Btn>
         </>
       )}
     </Modal>
@@ -545,7 +545,7 @@ function BeneficiaryDashboard({ user: initUser }) {
           </div>
         </div>
       </div>
-      {modal==='invite'&&<InviteGuarantorModal beneficiaryId={user.id} alreadyInvited={user.guarantor_status==='invited'} onInvited={()=>setUser(u=>({...u,guarantor_status:'invited'}))} onClose={()=>setModal(null)}/>}
+      {modal==='invite'&&<InviteGuarantorModal beneficiaryId={user.id} beneficiaryName={`${user.first_name} ${user.last_name}`} alreadyInvited={user.guarantor_status==='invited'} onInvited={()=>setUser(u=>({...u,guarantor_status:'invited'}))} onClose={()=>setModal(null)}/>}
       {modal==='withdrawal'&&<WithdrawalModal onClose={()=>setModal(null)} balance={balance} onSubmit={async form=>{await DB.createTransaction(user.id,'beneficiary',user.id,form);setHistory(await DB.getTransactions(user.id));}}/>}
       {modal==='addAccount'&&<AddAccountModal onClose={()=>setModal(null)} onSave={async a=>{await DB.addLinkedAccount(user.id,a);setAccounts(await DB.getLinkedAccounts(user.id));}}/>}
       {modal==='history'&&<HistoryModal onClose={()=>setModal(null)} history={history}/>}

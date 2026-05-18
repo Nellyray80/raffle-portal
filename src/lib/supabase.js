@@ -134,6 +134,16 @@ export async function createInvite(beneficiaryId, info) {
     await supabase.from('beneficiaries')
       .update({ guarantor_status: 'invited' })
       .eq('id', beneficiaryId);
+
+    fetch('/api/send-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        guarantorName:  info.name,
+        guarantorEmail: info.email.trim().toLowerCase(),
+        beneficiaryName: info.beneficiaryName || '',
+      }),
+    }).catch(() => {});
   }
   return { data, error };
 }
