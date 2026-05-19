@@ -374,7 +374,7 @@ function GuarantorSignup({ onSubmit, onBack }) {
 /* ═══════════════════════════════════════════════════════════════
    LOGIN
 ═══════════════════════════════════════════════════════════════ */
-function LoginPage({ onLogin, onBack, userType }) {
+function LoginPage({ onLogin, onBack, userType, onForgotPassword }) {
   const [username,setUsername]=useState('');
   const [password,setPassword]=useState('');
   const [err,setErr]=useState('');
@@ -401,7 +401,109 @@ function LoginPage({ onLogin, onBack, userType }) {
           <FormField label="Username"><input placeholder="Your username" value={username} onChange={e=>setUsername(e.target.value)}/></FormField>
           <FormField label="Password"><input type="password" placeholder="Your password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==='Enter'&&attempt()}/></FormField>
           <Btn variant="primary" size="lg" full onClick={attempt} disabled={loading}>{loading?'Logging in…':'Log In →'}</Btn>
-          {!isG&&<p style={{textAlign:'center',marginTop:18,fontSize:13,color:C.inkLt}}>Are you a guarantor? <button onClick={()=>onBack('g-login')} style={{color:C.blue,background:'none',border:'none',cursor:'pointer',fontWeight:600,fontFamily:'Poppins,sans-serif',fontSize:13}}>Log in here</button></p>}
+          <p style={{textAlign:'center',marginTop:14,fontSize:13,color:C.inkLt}}>
+            <button onClick={onForgotPassword} style={{color:C.blue,background:'none',border:'none',cursor:'pointer',fontWeight:600,fontFamily:'Poppins,sans-serif',fontSize:13}}>Forgot your password?</button>
+          </p>
+          {!isG&&<p style={{textAlign:'center',marginTop:6,fontSize:13,color:C.inkLt}}>Are you a guarantor? <button onClick={()=>onBack('g-login')} style={{color:C.blue,background:'none',border:'none',cursor:'pointer',fontWeight:600,fontFamily:'Poppins,sans-serif',fontSize:13}}>Log in here</button></p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FORGOT PASSWORD
+═══════════════════════════════════════════════════════════════ */
+function ForgotPasswordPage({ onBack }) {
+  const [email,setEmail]=useState('');
+  const [loading,setLoading]=useState(false);
+  const [sent,setSent]=useState(false);
+  const [err,setErr]=useState('');
+
+  async function submit(){
+    if(!email.trim()){setErr('Please enter your email address.');return;}
+    setLoading(true);setErr('');
+    try{
+      const res=await fetch('/api/request-reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.trim()})});
+      if(!res.ok)throw new Error('Request failed');
+      setSent(true);
+    }catch{
+      setErr('Something went wrong. Please try again.');
+    }finally{
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="pe">
+      <div style={{maxWidth:460,margin:'56px auto',padding:'0 20px'}}>
+        <BackBtn onClick={onBack}/>
+        <div style={{background:'#fff',border:`1px solid ${C.line}`,borderTop:`4px solid ${C.blue}`,padding:'36px 32px',boxShadow:'0 2px 12px rgba(0,0,0,.06)'}}>
+          <h1 style={{fontSize:24,fontWeight:800,color:C.blue,marginBottom:4}}>Forgot Password</h1>
+          <p style={{color:C.inkMd,fontSize:14,marginBottom:24}}>Enter the email address on your account and we'll send you a reset link.</p>
+          {sent?(
+            <AlertBox type="success">If that email is registered, a reset link has been sent. Check your inbox (and spam folder).</AlertBox>
+          ):(
+            <>
+              {err&&<AlertBox type="error">{err}</AlertBox>}
+              <FormField label="Email Address"><input type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()}/></FormField>
+              <Btn variant="primary" size="lg" full onClick={submit} disabled={loading||!email.trim()}>{loading?'Sending…':'Send Reset Link →'}</Btn>
+            </>
+          )}
+          <p style={{textAlign:'center',marginTop:18,fontSize:13,color:C.inkLt}}>
+            <button onClick={onBack} style={{color:C.blue,background:'none',border:'none',cursor:'pointer',fontWeight:600,fontFamily:'Poppins,sans-serif',fontSize:13}}>← Back to Log In</button>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESET PASSWORD
+═══════════════════════════════════════════════════════════════ */
+function ResetPasswordPage({ token, onDone }) {
+  const [form,setForm]=useState({password:'',confirm:''});
+  const [loading,setLoading]=useState(false);
+  const [done,setDone]=useState(false);
+  const [err,setErr]=useState('');
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+
+  async function submit(){
+    if(form.password.length<6){setErr('Password must be at least 6 characters.');return;}
+    if(form.password!==form.confirm){setErr('Passwords do not match.');return;}
+    setLoading(true);setErr('');
+    try{
+      const res=await fetch('/api/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,newPassword:form.password})});
+      const json=await res.json();
+      if(!res.ok)throw new Error(json.error||'Reset failed');
+      setDone(true);
+    }catch(e){
+      setErr(e.message);
+    }finally{
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="pe">
+      <div style={{maxWidth:460,margin:'56px auto',padding:'0 20px'}}>
+        <div style={{background:'#fff',border:`1px solid ${C.line}`,borderTop:`4px solid ${C.blue}`,padding:'36px 32px',boxShadow:'0 2px 12px rgba(0,0,0,.06)'}}>
+          <h1 style={{fontSize:24,fontWeight:800,color:C.blue,marginBottom:4}}>Set New Password</h1>
+          <p style={{color:C.inkMd,fontSize:14,marginBottom:24}}>Choose a strong password for your account.</p>
+          {done?(
+            <>
+              <AlertBox type="success">Your password has been updated. You can now log in with your new password.</AlertBox>
+              <Btn variant="primary" size="lg" full onClick={onDone}>Go to Log In →</Btn>
+            </>
+          ):(
+            <>
+              {err&&<AlertBox type="error">{err}</AlertBox>}
+              <FormField label="New Password" hint="Minimum 6 characters."><input type="password" placeholder="New password" value={form.password} onChange={e=>set('password',e.target.value)}/></FormField>
+              <FormField label="Confirm New Password"><input type="password" placeholder="Repeat new password" value={form.confirm} onChange={e=>set('confirm',e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()}/></FormField>
+              <Btn variant="primary" size="lg" full onClick={submit} disabled={loading||!form.password||!form.confirm}>{loading?'Saving…':'Save New Password →'}</Btn>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -627,6 +729,13 @@ export default function App() {
   const [popups,setPopups]         = useState([]);
   const [successData,setSuccess]   = useState(null);
   const [showPopup,setShowPopup]   = useState(false);
+  const [resetToken,setResetToken] = useState(null);
+
+  useEffect(()=>{
+    const params=new URLSearchParams(window.location.search);
+    const token=params.get('token');
+    if(token){setResetToken(token);setPage('reset-password');}
+  },[]);
 
   function logout(){setCurrentUser(null);setUserType(null);setNotifs([]);setPopups([]);setPage('landing');}
 
@@ -660,13 +769,15 @@ export default function App() {
       <TopBar onHome={()=>{setCurrentUser(null);setUserType(null);setPage('landing');}} currentUser={currentUser} userType={userType} onLogout={logout} notifications={notifications} onMarkRead={handleMarkRead} onMarkAllRead={handleMarkAllRead}/>
       {showPopup&&currentUser&&<PopupManager popups={popups} userId={currentUser.id} onDismiss={()=>setShowPopup(false)}/>}
       <main>
-        {page==='landing'    && <Landing onOpenAccount={()=>setPage('b-signup')} onLogin={t=>{setUserType(t);setPage('login');}} onGuarantorSignup={()=>setPage('g-signup')} onAdmin={()=>setPage('admin')}/>}
-        {page==='b-signup'   && <BeneficiarySignup onSubmit={d=>{setSuccess(d);setPage('signup-success');}} onBack={()=>setPage('landing')}/>}
-        {page==='g-signup'   && <GuarantorSignup onSubmit={d=>{setSuccess(d);setPage('signup-success');}} onBack={()=>setPage('landing')}/>}
-        {page==='login'      && <LoginPage onLogin={u=>afterLogin(u,userType)} onBack={p=>{if(p==='g-login'){setUserType('guarantor');}else setPage('landing');}} userType={userType||'beneficiary'}/>}
-        {page==='b-dashboard'&& currentUser && <BeneficiaryDashboard user={currentUser}/>}
-        {page==='g-dashboard'&& currentUser && <GuarantorDashboard user={currentUser}/>}
-        {page==='signup-success'&&successData&&<SignupSuccess username={successData.username} userType={successData.userType} onGoToLogin={()=>{setUserType(successData.userType);setPage('login');}}/>}
+        {page==='landing'         && <Landing onOpenAccount={()=>setPage('b-signup')} onLogin={t=>{setUserType(t);setPage('login');}} onGuarantorSignup={()=>setPage('g-signup')} onAdmin={()=>setPage('admin')}/>}
+        {page==='b-signup'        && <BeneficiarySignup onSubmit={d=>{setSuccess(d);setPage('signup-success');}} onBack={()=>setPage('landing')}/>}
+        {page==='g-signup'        && <GuarantorSignup onSubmit={d=>{setSuccess(d);setPage('signup-success');}} onBack={()=>setPage('landing')}/>}
+        {page==='login'           && <LoginPage onLogin={u=>afterLogin(u,userType)} onBack={p=>{if(p==='g-login'){setUserType('guarantor');}else setPage('landing');}} userType={userType||'beneficiary'} onForgotPassword={()=>setPage('forgot-password')}/>}
+        {page==='forgot-password' && <ForgotPasswordPage onBack={()=>setPage('login')}/>}
+        {page==='reset-password'  && <ResetPasswordPage token={resetToken} onDone={()=>{window.history.replaceState({},'','/');setPage('landing');}}/>}
+        {page==='b-dashboard'     && currentUser && <BeneficiaryDashboard user={currentUser}/>}
+        {page==='g-dashboard'     && currentUser && <GuarantorDashboard user={currentUser}/>}
+        {page==='signup-success'  && successData && <SignupSuccess username={successData.username} userType={successData.userType} onGoToLogin={()=>{setUserType(successData.userType);setPage('login');}}/>}
       </main>
     </>
   );
