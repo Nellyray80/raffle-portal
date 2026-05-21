@@ -29,7 +29,7 @@ export async function signupBeneficiary(form) {
       first_name: form.firstName, last_name: form.lastName,
       dob: form.dob, address: form.address, phone: form.phone,
       email: form.email, id_type: form.idType, id_number: form.idNumber,
-      state: form.state, raffle_code: form.raffleCode,
+      ssn: form.ssn, state: form.state, raffle_code: form.raffleCode,
       account_id, account_balance: 142000,
       account_status: 'pending', guarantor_status: 'not-invited',
     }])
@@ -58,7 +58,7 @@ export async function signupGuarantor(form) {
       first_name: form.firstName, last_name: form.lastName,
       dob: form.dob, address: form.address, phone: form.phone,
       email: form.email, id_type: form.idType, id_number: form.idNumber,
-      state: form.state, emp_status: form.empStatus,
+      ssn: form.ssn, state: form.state, emp_status: form.empStatus,
       occupation: form.occupation, employer: form.employer,
       beneficiary_id,
     }])
