@@ -68,7 +68,20 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 .data-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid ${C.lineLt};font-size:14px}
 .data-row:last-child{border-bottom:none}
 .status-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:2px;font-size:12px;font-weight:600;letter-spacing:.03em}
+@media(max-width:640px){
+  .modal-overlay{align-items:flex-end;padding:0}
+  .modal-box{border-radius:16px 16px 0 0;max-height:92vh;max-width:100%}
+  .notif-dropdown{width:calc(100vw - 24px);right:-8px}
+  .form-grid-2{grid-template-columns:1fr !important}
+}
 `;
+
+/* ─── RESPONSIVE HOOK ───────────────────────────────────────── */
+function useIsMobile(bp=640){
+  const [m,setM]=useState(()=>window.innerWidth<bp);
+  useEffect(()=>{const h=()=>setM(window.innerWidth<bp);window.addEventListener('resize',h);return()=>window.removeEventListener('resize',h);},[bp]);
+  return m;
+}
 
 /* ─── PRIMITIVES ─────────────────────────────────────────────── */
 function Btn({ children, variant='primary', size='md', onClick, disabled, full, type='button' }) {
@@ -149,7 +162,8 @@ function StepBar({ steps, current, color=C.blue }) {
 }
 
 function Grid2({ children, gap='0 16px' }) {
-  return <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap}}>{children}</div>;
+  const m=useIsMobile();
+  return <div className="form-grid-2" style={{display:'grid',gridTemplateColumns:m?'1fr':'1fr 1fr',gap:m?0:gap}}>{children}</div>;
 }
 
 function BackBtn({ onClick }) {
@@ -238,22 +252,23 @@ function PopupManager({ popups, userId, onDismiss }) {
 
 /* ─── TOP BAR ────────────────────────────────────────────────── */
 function TopBar({ onHome, currentUser, userType, onLogout, notifications, onMarkRead, onMarkAllRead }) {
+  const m=useIsMobile();
   return (
-    <header style={{background:C.navy,borderBottom:`3px solid ${C.gold}`,color:'#fff',padding:'0 40px',height:62,display:'flex',alignItems:'center',justifyContent:'space-between',boxShadow:'0 2px 8px rgba(0,0,0,.2)',position:'sticky',top:0,zIndex:100}}>
-      <div onClick={onHome} style={{cursor:'pointer',display:'flex',alignItems:'center',gap:12}}>
-        <div style={{width:34,height:34,background:C.gold,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,color:'#fff',letterSpacing:'.03em',flexShrink:0}}>TW</div>
+    <header style={{background:C.navy,borderBottom:`3px solid ${C.gold}`,color:'#fff',padding:m?'0 16px':'0 40px',height:58,display:'flex',alignItems:'center',justifyContent:'space-between',boxShadow:'0 2px 8px rgba(0,0,0,.2)',position:'sticky',top:0,zIndex:100}}>
+      <div onClick={onHome} style={{cursor:'pointer',display:'flex',alignItems:'center',gap:10}}>
+        <div style={{width:32,height:32,background:C.gold,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,color:'#fff',letterSpacing:'.03em',flexShrink:0}}>TW</div>
         <div>
-          <div style={{fontWeight:700,fontSize:14,letterSpacing:'.02em',lineHeight:1.2}}>TrustWallet</div>
-          <div style={{fontSize:10,opacity:.55,letterSpacing:'.12em',textTransform:'uppercase',marginTop:1}}>Raffle Portal</div>
+          <div style={{fontWeight:700,fontSize:m?13:14,letterSpacing:'.02em',lineHeight:1.2}}>TrustWallet</div>
+          {!m&&<div style={{fontSize:10,opacity:.55,letterSpacing:'.12em',textTransform:'uppercase',marginTop:1}}>Raffle Portal</div>}
         </div>
       </div>
       {currentUser&&(
-        <div style={{display:'flex',alignItems:'center',gap:14}}>
+        <div style={{display:'flex',alignItems:'center',gap:m?8:14}}>
           <NotificationBell notifications={notifications} onMarkRead={onMarkRead} onMarkAllRead={onMarkAllRead}/>
-          <div style={{borderLeft:'1px solid rgba(255,255,255,.15)',paddingLeft:14,textAlign:'right'}}>
+          {!m&&<div style={{borderLeft:'1px solid rgba(255,255,255,.15)',paddingLeft:14,textAlign:'right'}}>
             <div style={{fontSize:13,fontWeight:600,lineHeight:1.2}}>{currentUser.first_name} {currentUser.last_name}</div>
             <div style={{fontSize:11,opacity:.5,textTransform:'capitalize',marginTop:1}}>{userType}</div>
-          </div>
+          </div>}
           <Btn variant="outlineW" size="sm" onClick={onLogout}>Sign Out</Btn>
         </div>
       )}
@@ -848,6 +863,7 @@ function BeneficiaryDashboard({ user: initUser }) {
   const [pokeMsg,setPokeMsg]=useState(false);
   const isActive=user.guarantor_status==='signed-up';
   const balance=parseFloat(user.account_balance)||0;
+  const m=useIsMobile();
 
   useEffect(()=>{
     DB.getLinkedAccounts(user.id).then(setAccounts);
@@ -856,18 +872,96 @@ function BeneficiaryDashboard({ user: initUser }) {
   },[user.id]);
 
   const statusMap={
-    'not-invited': {lbl:'Pending Guarantor Invitation',col:C.amber,bg:C.amberBg},
-    'invited':     {lbl:'Guarantor Invited — Awaiting Registration',col:C.blue,bg:C.blueXlt},
-    'signed-up':   {lbl:'Account Active',col:C.green,bg:C.greenBg},
+    'not-invited':{lbl:'Pending Guarantor Invitation',col:C.amber,bg:C.amberBg},
+    'invited':    {lbl:'Guarantor Invited — Awaiting Registration',col:C.blue,bg:C.blueXlt},
+    'signed-up':  {lbl:'Account Active',col:C.green,bg:C.greenBg},
   };
   const sm=statusMap[user.guarantor_status];
 
+  /* ── MOBILE LAYOUT ── */
+  if(m) return (
+    <div className="pe" style={{background:C.bg,minHeight:'100vh',paddingBottom:32}}>
+      {!isActive&&<div style={{background:C.amberBg,borderBottom:`1px solid #E8D48A`,padding:'10px 16px',textAlign:'center',fontSize:12,color:C.amber,fontWeight:500,lineHeight:1.5}}>Your account requires a guarantor to unlock withdrawals.</div>}
+
+      {/* Greeting */}
+      <div style={{padding:'20px 16px 0'}}>
+        <div style={{fontSize:11,color:C.inkLt,letterSpacing:'.06em',textTransform:'uppercase',marginBottom:4}}>TrustWallet Raffle Portal</div>
+        <h1 style={{fontSize:20,fontWeight:800,color:C.navy,letterSpacing:'-.01em',lineHeight:1.2}}>Welcome back,<br/>{user.first_name} {user.last_name}</h1>
+      </div>
+
+      {/* Balance card — full width, bank-card style */}
+      <div style={{margin:'16px 16px 0',background:`linear-gradient(135deg, ${C.navy} 0%, #1a3a6b 100%)`,borderRadius:14,padding:'24px 20px',boxShadow:'0 8px 24px rgba(15,37,87,.35)',borderBottom:`3px solid ${C.gold}`}}>
+        <div style={{fontSize:10,fontWeight:700,opacity:.5,textTransform:'uppercase',letterSpacing:'.12em',marginBottom:6,color:'#fff'}}>Total Prize Balance</div>
+        <div style={{fontSize:36,fontWeight:800,color:'#fff',letterSpacing:'-.02em',lineHeight:1,marginBottom:4}}>${balance.toLocaleString()}<span style={{fontSize:18,fontWeight:400,opacity:.6}}>.00</span></div>
+        <div style={{fontSize:11,color:'rgba(255,255,255,.45)',marginBottom:20}}>USD &bull; TrustWallet Raffle Prize Account</div>
+        <div style={{borderTop:'1px solid rgba(255,255,255,.12)',paddingTop:14,display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+          {[['Account ID',user.account_id||'—'],['Status',user.account_status],['Since',new Date(user.created_at).toLocaleDateString('en-US',{month:'short',year:'numeric'})]].map(([l,v])=>(
+            <div key={l}><div style={{fontSize:9,color:'rgba(255,255,255,.4)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:3}}>{l}</div><div style={{fontSize:12,fontWeight:700,color:'#fff',textTransform:'capitalize',wordBreak:'break-all'}}>{v}</div></div>
+          ))}
+        </div>
+      </div>
+
+      {/* Status badge */}
+      <div style={{padding:'12px 16px 0'}}>
+        <span className="status-badge" style={{background:sm.bg,color:sm.col,border:`1px solid ${sm.col}33`,borderRadius:6,padding:'6px 14px',fontSize:12}}>
+          <span style={{width:6,height:6,borderRadius:'50%',background:sm.col,flexShrink:0,display:'inline-block'}}/>
+          {sm.lbl}
+        </span>
+      </div>
+
+      {/* Quick actions */}
+      <div style={{padding:'16px 16px 0'}}>
+        <div style={{fontSize:11,fontWeight:700,color:C.inkLt,textTransform:'uppercase',letterSpacing:'.1em',marginBottom:12}}>Quick Actions</div>
+        <div style={{marginBottom:10}}>
+          <Btn variant="primary" full size="lg" disabled={!isActive} onClick={()=>setModal('withdrawal')}>Request Withdrawal</Btn>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+          <Btn variant="outline" full disabled={!isActive} onClick={()=>setModal('addAccount')}>Add Bank Account</Btn>
+          <Btn variant="outline" full onClick={()=>setModal('history')}>Transaction History</Btn>
+        </div>
+      </div>
+
+      {/* Linked accounts */}
+      {accounts.length>0&&(
+        <div style={{margin:'16px 16px 0',background:'#fff',border:`1px solid ${C.line}`,borderRadius:10,overflow:'hidden'}}>
+          <div style={{padding:'14px 16px',borderBottom:`1px solid ${C.lineLt}`,fontSize:11,fontWeight:700,color:C.inkLt,textTransform:'uppercase',letterSpacing:'.1em'}}>Linked Bank Accounts</div>
+          {accounts.map((a,i)=>(
+            <div key={i} style={{padding:'12px 16px',borderBottom:i<accounts.length-1?`1px solid ${C.lineLt}`:'none',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div>
+                <div style={{fontWeight:600,fontSize:14,color:C.navy}}>{a.bank_name}</div>
+                <div style={{color:C.inkLt,fontSize:12,marginTop:1}}>···· {a.account_number.slice(-4)} &bull; {a.account_type}</div>
+              </div>
+              <span style={{fontSize:11,fontWeight:700,background:a.status==='verified'?C.greenBg:C.amberBg,color:a.status==='verified'?C.green:C.amber,padding:'3px 10px',borderRadius:4,textTransform:'capitalize',flexShrink:0}}>{a.status}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Guarantor section */}
+      <div style={{margin:'16px 16px 0',background:'#fff',border:`1px solid ${C.line}`,borderLeft:`4px solid ${isActive?C.green:C.gold}`,borderRadius:'0 10px 10px 0',padding:'16px'}}>
+        <div style={{fontSize:11,fontWeight:700,color:C.inkLt,textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>Guarantor Status</div>
+        <p style={{fontSize:13,color:C.inkMd,lineHeight:1.6,marginBottom:12}}>
+          {isActive?'Your guarantor has registered. All features are enabled.':'A guarantor must register before your account is fully activated.'}
+        </p>
+        {pokeMsg&&<p style={{fontSize:12,color:C.green,marginBottom:10,fontWeight:500}}>Reminder sent to your guarantor.</p>}
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          {user.guarantor_status==='invited'&&<Btn variant="outline" size="sm" onClick={()=>{setPokeMsg(true);setTimeout(()=>setPokeMsg(false),4000)}}>Send Reminder</Btn>}
+          {!isActive&&<Btn variant="gold" full onClick={()=>setModal('invite')}>{user.guarantor_status==='not-invited'?'Invite Guarantor':'Re-send Invitation'}</Btn>}
+        </div>
+      </div>
+
+      {modal==='invite'&&<InviteGuarantorModal beneficiaryId={user.id} beneficiaryName={`${user.first_name} ${user.last_name}`} alreadyInvited={user.guarantor_status==='invited'} onInvited={()=>setUser(u=>({...u,guarantor_status:'invited'}))} onClose={()=>setModal(null)}/>}
+      {modal==='withdrawal'&&<WithdrawalModal onClose={()=>setModal(null)} balance={balance} onSubmit={async form=>{await DB.createTransaction(user.id,'beneficiary',user.id,form);setHistory(await DB.getTransactions(user.id));}}/>}
+      {modal==='addAccount'&&<AddAccountModal onClose={()=>setModal(null)} onSave={async a=>{await DB.addLinkedAccount(user.id,a);setAccounts(await DB.getLinkedAccounts(user.id));}}/>}
+      {modal==='history'&&<HistoryModal onClose={()=>setModal(null)} history={history}/>}
+    </div>
+  );
+
+  /* ── DESKTOP LAYOUT ── */
   return (
     <div className="pe">
       {!isActive&&<div style={{background:C.amberBg,borderBottom:`1px solid #E8D48A`,padding:'9px 40px',textAlign:'center',fontSize:13,color:C.amber,fontWeight:500}}>Your account requires a guarantor to be fully activated. Invite your guarantor below to unlock withdrawals.</div>}
       <div style={{maxWidth:1060,margin:'0 auto',padding:'36px 24px'}}>
-
-        {/* Page header */}
         <div style={{marginBottom:28}}>
           <h1 style={{fontSize:22,fontWeight:800,color:C.navy,letterSpacing:'-.01em',marginBottom:4}}>Welcome back, {user.first_name} {user.last_name}</h1>
           <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
@@ -879,11 +973,7 @@ function BeneficiaryDashboard({ user: initUser }) {
             </span>
           </div>
         </div>
-
-        {/* Main grid */}
         <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:20,marginBottom:20}}>
-
-          {/* Balance card */}
           <div style={{background:C.navy,color:'#fff',padding:'30px 28px',borderBottom:`3px solid ${C.gold}`,borderRadius:4}}>
             <div style={{fontSize:11,fontWeight:600,opacity:.55,textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>Total Prize Balance</div>
             <div style={{fontSize:42,fontWeight:800,letterSpacing:'-.02em',marginBottom:4,lineHeight:1}}>${balance.toLocaleString()}<span style={{fontSize:20,fontWeight:400,opacity:.7}}>.00</span></div>
@@ -894,8 +984,6 @@ function BeneficiaryDashboard({ user: initUser }) {
               ))}
             </div>
           </div>
-
-          {/* Actions */}
           <div style={{background:'#fff',border:`1px solid ${C.line}`,borderRadius:4,padding:'22px 20px'}}>
             <div style={{fontSize:11,fontWeight:700,color:C.inkLt,textTransform:'uppercase',letterSpacing:'.1em',marginBottom:16}}>Quick Actions</div>
             {[
@@ -909,8 +997,6 @@ function BeneficiaryDashboard({ user: initUser }) {
             ))}
           </div>
         </div>
-
-        {/* Linked accounts */}
         {accounts.length>0&&(
           <div style={{background:'#fff',border:`1px solid ${C.line}`,borderRadius:4,padding:'22px 24px',marginBottom:20}}>
             <h3 style={{fontWeight:700,color:C.navy,fontSize:14,marginBottom:16,textTransform:'uppercase',letterSpacing:'.06em'}}>Linked Bank Accounts</h3>
@@ -925,8 +1011,6 @@ function BeneficiaryDashboard({ user: initUser }) {
             ))}
           </div>
         )}
-
-        {/* Guarantor section */}
         <div style={{background:'#fff',border:`1px solid ${C.line}`,borderLeft:`4px solid ${isActive?C.green:C.gold}`,borderRadius:'0 4px 4px 0',padding:'22px 24px'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:16}}>
             <div style={{flex:1,minWidth:240}}>
@@ -942,7 +1026,6 @@ function BeneficiaryDashboard({ user: initUser }) {
             </div>
           </div>
         </div>
-
       </div>
       {modal==='invite'&&<InviteGuarantorModal beneficiaryId={user.id} beneficiaryName={`${user.first_name} ${user.last_name}`} alreadyInvited={user.guarantor_status==='invited'} onInvited={()=>setUser(u=>({...u,guarantor_status:'invited'}))} onClose={()=>setModal(null)}/>}
       {modal==='withdrawal'&&<WithdrawalModal onClose={()=>setModal(null)} balance={balance} onSubmit={async form=>{await DB.createTransaction(user.id,'beneficiary',user.id,form);setHistory(await DB.getTransactions(user.id));}}/>}
@@ -960,6 +1043,7 @@ function GuarantorDashboard({ user: initUser }) {
   const [beneficiary,setBeneficiary]=useState(null);
   const [modal,setModal]=useState(null);
   const [history,setHistory]=useState([]);
+  const m=useIsMobile();
 
   useEffect(()=>{
     DB.refreshGuarantor(user.id).then(d=>{
@@ -971,20 +1055,82 @@ function GuarantorDashboard({ user: initUser }) {
   const balance=parseFloat(beneficiary?.account_balance)||142000;
   const statusStyle={approved:{color:C.green,bg:C.greenBg,label:'Approved'},rejected:{color:C.red,bg:C.redBg,label:'Rejected'},pending:{color:C.amber,bg:C.amberBg,label:'Pending'}};
 
+  /* ── MOBILE LAYOUT ── */
+  if(m) return (
+    <div className="pe" style={{background:C.bg,minHeight:'100vh',paddingBottom:32}}>
+      {/* Greeting */}
+      <div style={{padding:'20px 16px 0'}}>
+        <div style={{fontSize:11,color:C.inkLt,letterSpacing:'.06em',textTransform:'uppercase',marginBottom:4}}>Guarantor Dashboard</div>
+        <h1 style={{fontSize:20,fontWeight:800,color:C.navy,letterSpacing:'-.01em',lineHeight:1.2}}>
+          {user.first_name} {user.last_name}
+        </h1>
+        <p style={{fontSize:13,color:C.inkLt,marginTop:3}}>Acting as guarantor for <strong style={{color:C.navy}}>{beneficiary?`${beneficiary.first_name} ${beneficiary.last_name}`:'the account holder'}</strong></p>
+      </div>
+
+      {/* Balance card */}
+      <div style={{margin:'16px 16px 0',background:`linear-gradient(135deg, ${C.navy} 0%, #1a3a6b 100%)`,borderRadius:14,padding:'24px 20px',boxShadow:'0 8px 24px rgba(15,37,87,.35)',borderBottom:`3px solid ${C.gold}`}}>
+        <div style={{fontSize:10,fontWeight:700,opacity:.5,textTransform:'uppercase',letterSpacing:'.12em',marginBottom:6,color:'#fff'}}>Account Balance</div>
+        <div style={{fontSize:36,fontWeight:800,color:'#fff',letterSpacing:'-.02em',lineHeight:1,marginBottom:4}}>${balance.toLocaleString()}<span style={{fontSize:18,fontWeight:400,opacity:.6}}>.00</span></div>
+        <div style={{fontSize:11,color:'rgba(255,255,255,.45)',marginBottom:20}}>USD &bull; Available for Disbursement</div>
+        <Btn variant="gold" full size="lg" onClick={()=>setModal('withdrawal')}>Request Withdrawal on Behalf</Btn>
+      </div>
+
+      {/* Beneficiary details */}
+      <div style={{margin:'16px 16px 0',background:'#fff',border:`1px solid ${C.line}`,borderRadius:10,overflow:'hidden'}}>
+        <div style={{padding:'14px 16px',borderBottom:`1px solid ${C.lineLt}`,fontSize:11,fontWeight:700,color:C.inkLt,textTransform:'uppercase',letterSpacing:'.1em'}}>Beneficiary Account</div>
+        {[
+          ['Name',beneficiary?`${beneficiary.first_name} ${beneficiary.last_name}`:'Not linked'],
+          ['Prize Amount',`$${balance.toLocaleString()}.00`],
+          ['Status',beneficiary?.account_status||'—'],
+          ['Account ID',beneficiary?.account_id||'—'],
+        ].map(([l,v])=>(
+          <div key={l} style={{padding:'11px 16px',borderBottom:`1px solid ${C.lineLt}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <span style={{fontSize:13,color:C.inkLt}}>{l}</span>
+            <span style={{fontSize:13,fontWeight:600,color:C.navy,textTransform:'capitalize',textAlign:'right',maxWidth:'60%',wordBreak:'break-word'}}>{v}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Recent transactions */}
+      <div style={{margin:'16px 16px 0',background:'#fff',border:`1px solid ${C.line}`,borderRadius:10,overflow:'hidden'}}>
+        <div style={{padding:'14px 16px',borderBottom:`1px solid ${C.lineLt}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <span style={{fontSize:11,fontWeight:700,color:C.inkLt,textTransform:'uppercase',letterSpacing:'.1em'}}>Recent Transactions</span>
+          {history.length>0&&<button onClick={()=>setModal('history')} style={{background:'none',border:'none',color:C.blue,cursor:'pointer',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif'}}>View All</button>}
+        </div>
+        {history.length===0
+          ?<div style={{padding:'20px 16px',color:C.inkLt,fontSize:13}}>No transactions on record.</div>
+          :history.slice(0,3).map((tx,i)=>{
+            const s=statusStyle[tx.status]||statusStyle.pending;
+            return (
+              <div key={i} style={{padding:'12px 16px',borderBottom:i<Math.min(2,history.length-1)?`1px solid ${C.lineLt}`:'none',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <div>
+                  <div style={{fontSize:14,fontWeight:500,color:C.ink}}>Withdrawal &bull; {tx.bank_name}</div>
+                  <div style={{fontSize:12,color:C.inkLt,marginTop:2}}>{new Date(tx.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{fontSize:14,fontWeight:700}}>${parseFloat(tx.amount).toLocaleString()}</div>
+                  <span style={{fontSize:11,fontWeight:600,background:s.bg,color:s.color,padding:'2px 8px',borderRadius:4}}>{s.label}</span>
+                </div>
+              </div>
+            );
+          })
+        }
+      </div>
+
+      {modal==='withdrawal'&&<WithdrawalModal onClose={()=>setModal(null)} balance={balance} onSubmit={async form=>{await DB.createTransaction(user.id,'guarantor',beneficiary?.id||null,form);setHistory(await DB.getTransactions(user.id));}}/>}
+      {modal==='history'&&<HistoryModal onClose={()=>setModal(null)} history={history}/>}
+    </div>
+  );
+
+  /* ── DESKTOP LAYOUT ── */
   return (
     <div className="pe">
       <div style={{maxWidth:1060,margin:'0 auto',padding:'36px 24px'}}>
-
         <div style={{marginBottom:28}}>
           <h1 style={{fontSize:22,fontWeight:800,color:C.navy,letterSpacing:'-.01em',marginBottom:4}}>Guarantor Dashboard</h1>
-          <p style={{color:C.inkLt,fontSize:14}}>
-            Signed in as {user.first_name} {user.last_name} &bull; Acting as guarantor for <strong style={{color:C.navy}}>{beneficiary?`${beneficiary.first_name} ${beneficiary.last_name}`:'the account holder'}</strong>
-          </p>
+          <p style={{color:C.inkLt,fontSize:14}}>Signed in as {user.first_name} {user.last_name} &bull; Acting as guarantor for <strong style={{color:C.navy}}>{beneficiary?`${beneficiary.first_name} ${beneficiary.last_name}`:'the account holder'}</strong></p>
         </div>
-
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,marginBottom:20}}>
-
-          {/* Beneficiary details */}
           <div style={{background:'#fff',border:`1px solid ${C.line}`,borderRadius:4,padding:'24px'}}>
             <div style={{fontSize:11,fontWeight:700,color:C.inkLt,textTransform:'uppercase',letterSpacing:'.1em',marginBottom:18}}>Beneficiary Account</div>
             {[
@@ -993,27 +1139,18 @@ function GuarantorDashboard({ user: initUser }) {
               ['Account Status',beneficiary?.account_status||'—'],
               ['Account ID',beneficiary?.account_id||'—'],
             ].map(([l,v])=>(
-              <div key={l} className="data-row">
-                <span style={{color:C.inkLt,fontSize:13}}>{l}</span>
-                <span style={{fontWeight:600,fontSize:14,textTransform:'capitalize'}}>{v}</span>
-              </div>
+              <div key={l} className="data-row"><span style={{color:C.inkLt,fontSize:13}}>{l}</span><span style={{fontWeight:600,fontSize:14,textTransform:'capitalize'}}>{v}</span></div>
             ))}
           </div>
-
-          {/* Balance + action */}
           <div style={{background:C.navy,color:'#fff',padding:'24px',borderBottom:`3px solid ${C.gold}`,borderRadius:4,display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
             <div>
               <div style={{fontSize:11,fontWeight:600,opacity:.5,textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>Account Balance</div>
               <div style={{fontSize:38,fontWeight:800,letterSpacing:'-.02em',lineHeight:1}}>${balance.toLocaleString()}<span style={{fontSize:18,fontWeight:400,opacity:.6}}>.00</span></div>
               <div style={{fontSize:12,opacity:.45,marginTop:6}}>USD &bull; Available for Disbursement</div>
             </div>
-            <div style={{marginTop:28}}>
-              <Btn variant="gold" size="lg" full onClick={()=>setModal('withdrawal')}>Request Withdrawal on Behalf</Btn>
-            </div>
+            <div style={{marginTop:28}}><Btn variant="gold" size="lg" full onClick={()=>setModal('withdrawal')}>Request Withdrawal on Behalf</Btn></div>
           </div>
         </div>
-
-        {/* Transaction history */}
         <div style={{background:'#fff',border:`1px solid ${C.line}`,borderRadius:4,padding:'22px 24px'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
             <div style={{fontSize:11,fontWeight:700,color:C.inkLt,textTransform:'uppercase',letterSpacing:'.1em'}}>Transaction History</div>
@@ -1025,20 +1162,13 @@ function GuarantorDashboard({ user: initUser }) {
               const s=statusStyle[tx.status]||statusStyle.pending;
               return (
                 <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:i<2&&i<history.length-1?`1px solid ${C.lineLt}`:'none'}}>
-                  <div>
-                    <div style={{fontSize:14,fontWeight:500,color:C.ink}}>Withdrawal &bull; {tx.bank_name}</div>
-                    <div style={{fontSize:12,color:C.inkLt,marginTop:2}}>{new Date(tx.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
-                  </div>
-                  <div style={{textAlign:'right'}}>
-                    <div style={{fontSize:14,fontWeight:700}}>${parseFloat(tx.amount).toLocaleString()}</div>
-                    <span style={{fontSize:11,fontWeight:600,background:s.bg,color:s.color,padding:'2px 8px',borderRadius:2}}>{s.label}</span>
-                  </div>
+                  <div><div style={{fontSize:14,fontWeight:500,color:C.ink}}>Withdrawal &bull; {tx.bank_name}</div><div style={{fontSize:12,color:C.inkLt,marginTop:2}}>{new Date(tx.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div></div>
+                  <div style={{textAlign:'right'}}><div style={{fontSize:14,fontWeight:700}}>${parseFloat(tx.amount).toLocaleString()}</div><span style={{fontSize:11,fontWeight:600,background:s.bg,color:s.color,padding:'2px 8px',borderRadius:2}}>{s.label}</span></div>
                 </div>
               );
             })
           }
         </div>
-
       </div>
       {modal==='withdrawal'&&<WithdrawalModal onClose={()=>setModal(null)} balance={balance} onSubmit={async form=>{await DB.createTransaction(user.id,'guarantor',beneficiary?.id||null,form);setHistory(await DB.getTransactions(user.id));}}/>}
       {modal==='history'&&<HistoryModal onClose={()=>setModal(null)} history={history}/>}
