@@ -256,7 +256,7 @@ function TopBar({ onHome, currentUser, userType, onLogout, notifications, onMark
   return (
     <header style={{background:C.navy,borderBottom:`3px solid ${C.gold}`,color:'#fff',padding:m?'0 16px':'0 40px',height:58,display:'flex',alignItems:'center',justifyContent:'space-between',boxShadow:'0 2px 8px rgba(0,0,0,.2)',position:'sticky',top:0,zIndex:100}}>
       <div onClick={onHome} style={{cursor:'pointer',display:'flex',alignItems:'center',gap:10}}>
-        <div style={{width:32,height:32,background:C.gold,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,color:'#fff',letterSpacing:'.03em',flexShrink:0}}>TW</div>
+        <img src="/logo.jpg" alt="TrustWallet" style={{width:34,height:34,borderRadius:5,objectFit:'contain',background:'#fff',flexShrink:0}}/>
         <div>
           <div style={{fontWeight:700,fontSize:m?13:14,letterSpacing:'.02em',lineHeight:1.2}}>TrustWallet</div>
           {!m&&<div style={{fontSize:10,opacity:.55,letterSpacing:'.12em',textTransform:'uppercase',marginTop:1}}>Raffle Portal</div>}
@@ -284,6 +284,7 @@ function Landing({ onOpenAccount, onLogin, onGuarantorSignup, onAdmin }) {
     <div className="pe">
       {/* Hero */}
       <div style={{background:`linear-gradient(160deg, ${C.navy} 0%, ${C.blue} 100%)`,color:'#fff',padding:'64px 40px 56px',textAlign:'center',borderBottom:`3px solid ${C.gold}`}}>
+        <img src="/logo.jpg" alt="TrustWallet" style={{width:72,height:72,borderRadius:10,objectFit:'contain',background:'#fff',marginBottom:18,boxShadow:'0 4px 16px rgba(0,0,0,.25)'}}/>
         <div style={{fontSize:11,fontWeight:700,letterSpacing:'.2em',textTransform:'uppercase',opacity:.6,marginBottom:14}}>TrustWallet Financial Services</div>
         <h1 style={{fontSize:32,fontWeight:800,marginBottom:12,letterSpacing:'-.02em',lineHeight:1.2}}>Raffle Prize Management Portal</h1>
         <p style={{fontSize:15,opacity:.75,maxWidth:480,margin:'0 auto 8px',lineHeight:1.7}}>Official portal for verified raffle prize winners and their appointed guarantors.</p>
