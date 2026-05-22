@@ -289,7 +289,7 @@ export async function adminGetAllBeneficiaries() {
 export async function adminGetAllGuarantors() {
   const { data } = await supabase
     .from('guarantors')
-    .select('*, beneficiaries(first_name, last_name, account_id)')
+    .select('*, beneficiaries(first_name, last_name, account_id, username)')
     .order('created_at', { ascending: false });
   return data || [];
 }

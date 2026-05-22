@@ -64,13 +64,30 @@ function Table({ cols, rows, renderRow }) {
   );
 }
 
-function Modal({ title, onClose, children }) {
+function Modal({ title, onClose, children, wide }) {
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:20}} onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div style={{background:'#fff',maxWidth:540,width:'100%',maxHeight:'90vh',overflowY:'auto',borderRadius:4,boxShadow:'0 24px 64px rgba(0,0,0,.22)'}}>
+      <div style={{background:'#fff',maxWidth:wide?720:540,width:'100%',maxHeight:'90vh',overflowY:'auto',borderRadius:4,boxShadow:'0 24px 64px rgba(0,0,0,.22)'}}>
         <div style={{padding:'18px 24px 14px',background:C.blue,color:'#fff',borderRadius:'4px 4px 0 0',display:'flex',justifyContent:'space-between',alignItems:'center'}}><h3 style={{fontSize:16,fontWeight:700}}>{title}</h3><button onClick={onClose} style={{background:'none',border:'none',color:'rgba(255,255,255,.8)',cursor:'pointer',fontSize:22,lineHeight:1}}>×</button></div>
         <div style={{padding:24}}>{children}</div>
       </div>
+    </div>
+  );
+}
+
+function InfoSection({ title }) {
+  return <div style={{fontSize:11,fontWeight:700,color:C.blue,textTransform:'uppercase',letterSpacing:'.08em',marginTop:20,marginBottom:10,paddingBottom:6,borderBottom:`1.5px solid ${C.line}`}}>{title}</div>;
+}
+
+function InfoGrid({ items }) {
+  return (
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px 20px',marginBottom:4}}>
+      {items.map(([label,value])=>(
+        <div key={label} style={{background:C.blueXlt,borderRadius:3,padding:'10px 12px'}}>
+          <div style={{fontSize:11,color:C.inkLt,marginBottom:3,fontWeight:600}}>{label}</div>
+          <div style={{fontSize:13,fontWeight:600,color:C.ink,wordBreak:'break-word'}}>{value||<span style={{color:C.inkLt,fontStyle:'italic'}}>—</span>}</div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -145,6 +162,7 @@ function UsersTab() {
   const [users,setUsers]=useState([]);
   const [loading,setLoading]=useState(true);
   const [editing,setEditing]=useState(null);
+  const [viewing,setViewing]=useState(null);
   const [editForm,setEditForm]=useState({});
   const [saving,setSaving]=useState(false);
   const [msg,setMsg]=useState('');
@@ -182,9 +200,59 @@ function UsersTab() {
           <td style={{padding:'10px 14px'}}><Badge type={statusBadge(u.account_status)}>{u.account_status}</Badge></td>
           <td style={{padding:'10px 14px'}}><Badge type={gBadge(u.guarantor_status)}>{u.guarantor_status.replace('-',' ')}</Badge></td>
           <td style={{padding:'10px 14px',color:C.inkLt,fontSize:12}}>{new Date(u.created_at).toLocaleDateString()}</td>
-          <td style={{padding:'10px 14px'}}><Btn size="sm" onClick={()=>openEdit(u)}>Edit</Btn></td>
+          <td style={{padding:'10px 14px',whiteSpace:'nowrap'}}>
+            <Btn size="sm" variant="outline" onClick={()=>setViewing(u)}>View</Btn>
+            <span style={{marginLeft:6}}><Btn size="sm" onClick={()=>openEdit(u)}>Edit</Btn></span>
+          </td>
         </>}
       />
+
+      {viewing&&(
+        <Modal wide title={`Beneficiary Details — ${viewing.first_name} ${viewing.last_name}`} onClose={()=>setViewing(null)}>
+          <InfoSection title="Personal Information"/>
+          <InfoGrid items={[
+            ['First Name', viewing.first_name],
+            ['Last Name', viewing.last_name],
+            ['Date of Birth', viewing.dob ? new Date(viewing.dob).toLocaleDateString() : '—'],
+            ['Phone', viewing.phone],
+            ['Email', viewing.email],
+            ['State / Province', viewing.state],
+          ]}/>
+          <div style={{background:C.blueXlt,borderRadius:3,padding:'10px 12px',marginBottom:4}}>
+            <div style={{fontSize:11,color:C.inkLt,marginBottom:3,fontWeight:600}}>Residential Address</div>
+            <div style={{fontSize:13,fontWeight:600,color:C.ink}}>{viewing.address||'—'}</div>
+          </div>
+
+          <InfoSection title="Identification"/>
+          <InfoGrid items={[
+            ['ID Type', viewing.id_type],
+            ['ID Number', viewing.id_number],
+            ['SSN', viewing.ssn||'—'],
+            ['Raffle Code', viewing.raffle_code],
+          ]}/>
+
+          <InfoSection title="Account Details"/>
+          <InfoGrid items={[
+            ['Account ID', viewing.account_id],
+            ['Username', viewing.username],
+            ['Balance', `$${parseFloat(viewing.account_balance).toLocaleString()}`],
+            ['Account Status', viewing.account_status],
+            ['Guarantor Status', viewing.guarantor_status],
+            ['Registered', new Date(viewing.created_at).toLocaleString()],
+          ]}/>
+
+          {viewing.admin_notes&&(
+            <>
+              <InfoSection title="Admin Notes"/>
+              <div style={{background:C.amberBg,border:`1px solid #E8D080`,borderRadius:3,padding:'12px 14px',fontSize:13,color:C.ink}}>{viewing.admin_notes}</div>
+            </>
+          )}
+          <div style={{marginTop:20}}>
+            <Btn variant="outline" full onClick={()=>setViewing(null)}>Close</Btn>
+          </div>
+        </Modal>
+      )}
+
       {editing&&(
         <Modal title={`Edit — ${editing.first_name} ${editing.last_name}`} onClose={()=>setEditing(null)}>
           <Field label="Account Balance (USD)"><input style={inp} type="number" value={editForm.account_balance} onChange={e=>setEditForm(f=>({...f,account_balance:e.target.value}))}/></Field>
@@ -207,13 +275,14 @@ function UsersTab() {
 function GuarantorsTab() {
   const [guar,setGuar]=useState([]);
   const [loading,setLoading]=useState(true);
+  const [viewing,setViewing]=useState(null);
   useEffect(()=>{DB.adminGetAllGuarantors().then(d=>{setGuar(d);setLoading(false);});},[]);
   if(loading)return <div style={{padding:40,textAlign:'center',color:C.inkLt}}>Loading…</div>;
   return (
     <div>
       <SectionHead title={`Guarantors (${guar.length})`}/>
       <Table
-        cols={['Name','Username','Email','Occupation','Employer','Linked Beneficiary','Joined']}
+        cols={['Name','Username','Email','Occupation','Employer','Linked Beneficiary','Joined','Actions']}
         rows={guar}
         renderRow={g=><>
           <td style={{padding:'10px 14px',fontWeight:600}}>{g.first_name} {g.last_name}</td>
@@ -223,8 +292,53 @@ function GuarantorsTab() {
           <td style={{padding:'10px 14px'}}>{g.employer} <span style={{fontSize:11,color:C.inkLt}}>({g.emp_status})</span></td>
           <td style={{padding:'10px 14px'}}>{g.beneficiaries?`${g.beneficiaries.first_name} ${g.beneficiaries.last_name}`:<span style={{color:C.inkLt,fontSize:12}}>Not linked</span>}</td>
           <td style={{padding:'10px 14px',color:C.inkLt,fontSize:12}}>{new Date(g.created_at).toLocaleDateString()}</td>
+          <td style={{padding:'10px 14px'}}><Btn size="sm" variant="outline" onClick={()=>setViewing(g)}>View Details</Btn></td>
         </>}
       />
+
+      {viewing&&(
+        <Modal wide title={`Guarantor Details — ${viewing.first_name} ${viewing.last_name}`} onClose={()=>setViewing(null)}>
+          <InfoSection title="Personal Information"/>
+          <InfoGrid items={[
+            ['First Name', viewing.first_name],
+            ['Last Name', viewing.last_name],
+            ['Date of Birth', viewing.dob ? new Date(viewing.dob).toLocaleDateString() : '—'],
+            ['Phone', viewing.phone],
+            ['Email', viewing.email],
+            ['State / Province', viewing.state],
+          ]}/>
+          <div style={{background:C.blueXlt,borderRadius:3,padding:'10px 12px',marginBottom:4}}>
+            <div style={{fontSize:11,color:C.inkLt,marginBottom:3,fontWeight:600}}>Residential Address</div>
+            <div style={{fontSize:13,fontWeight:600,color:C.ink}}>{viewing.address||'—'}</div>
+          </div>
+
+          <InfoSection title="Identification"/>
+          <InfoGrid items={[
+            ['ID Type', viewing.id_type],
+            ['ID Number', viewing.id_number],
+            ['SSN', viewing.ssn||'—'],
+          ]}/>
+
+          <InfoSection title="Employment"/>
+          <InfoGrid items={[
+            ['Employment Status', viewing.emp_status],
+            ['Occupation / Job Title', viewing.occupation],
+            ['Employer / Business', viewing.employer],
+          ]}/>
+
+          <InfoSection title="Account & Linkage"/>
+          <InfoGrid items={[
+            ['Username', viewing.username],
+            ['Linked Beneficiary', viewing.beneficiaries ? `${viewing.beneficiaries.first_name} ${viewing.beneficiaries.last_name}` : 'Not linked'],
+            ['Beneficiary Account ID', viewing.beneficiaries?.account_id||'—'],
+            ['Registered', new Date(viewing.created_at).toLocaleString()],
+          ]}/>
+
+          <div style={{marginTop:20}}>
+            <Btn variant="outline" full onClick={()=>setViewing(null)}>Close</Btn>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
