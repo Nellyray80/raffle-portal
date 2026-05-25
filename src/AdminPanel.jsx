@@ -359,6 +359,11 @@ function TransactionsTab() {
     setSaving(true);
     await DB.adminUpdateTransaction(reviewing.id,status,note);
     setTxs(t=>t.map(x=>x.id===reviewing.id?{...x,status,admin_note:note}:x));
+    fetch('/api/withdrawal-decision',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({transactionId:reviewing.id,status,adminNote:note}),
+    }).catch(()=>{});
     setSaving(false);setReviewing(null);setNote('');
   }
 
